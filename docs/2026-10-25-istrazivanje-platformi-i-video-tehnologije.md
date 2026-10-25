@@ -300,3 +300,28 @@ treba politika brisanja ili veći disk.
 `lk load-test --audio-publishers 1 --subscribers 500` (i varijante za scenarije
 B, C i D) s drugog stroja na drugoj mreži, uz praćenje CPU-a, uploada i paketa
 u sekundi na routeru. Zatim zamijeniti procjene u ovoj tablici mjerenjima.
+
+### x86 ili ARM
+
+Predloženi MS-A2 (AMD Ryzen 9 9955HX) i MS-01 (Intel i9-13900H) su **x86-64**.
+
+LiveKit radi i na ARM-u. Docker Hub (provjereno 2026-10-25): `livekit/livekit-server`,
+`livekit/egress`, `livekit/ingress` i `redis` imaju slike za `amd64` i `arm64`.
+
+Minisforumov ARM model je **MS-R1**: CIX P1 (CP8180), 12 jezgri (8× A720 i
+4× A520), 64 GB LPDDR5 zalemljeno, oko £585 za 64 GB / 1 TB. Dolazi s
+prilagođenim Debianom 12.
+<https://www.cnx-software.com/2025/11/11/500-minisforum-ms-r1-arm-linux-ai-mini-pc-features-cix-cp8180-12-core-soc-up-to-64gb-lpddr5x/>,
+<https://www.linuxlinks.com/minisforum-ms-r1-arm-workstation-running-linux-introduction/>
+
+**Odluka (prijedlog): x86 za produkcijski server.** Razlozi:
+
+- Driveri za MS-R1 još nisu u glavnom kernelu. Minisforum preporučuje svoju
+  sliku sustava, pa ovisimo o njima za sigurnosne nadogradnje kernela, a to je
+  loše za javno izložen server.
+- Ekosustav oko LiveKita (headless Chrome u Egressu, Postgres, monitoring) je
+  bolje testiran na x86.
+- Prednost ARM-a je potrošnja struje, a usko grlo je upload veze, ne CPU.
+
+ARM ima smisla za eksperimente ili drugi čvor, ili ako potrošnja 24/7 postane
+važna. Treba ga ponovno razmotriti kad CIX driveri uđu u glavni kernel.
