@@ -103,6 +103,90 @@ Napomene:
 - Kapacitet: 4 vCPU podnosi stotine audio ili desetke video sudionika. Ovo je
   gruba procjena, nije izmjereno.
 
+## Provjera LiveKita i konkurencije (2026-10-25)
+
+### Porijeklo
+
+LiveKit (2021., Russ d'Sa i David Zhao) nije izveden iz Jitsija. Napisan je
+od nule u Go-u na **Pionu** (WebRTC biblioteka za Go). Nasljeđuje iskustvo
+starijih SFU-ova (simulcast, model sobe), ali s njima ne dijeli kod.
+
+```mermaid
+flowchart LR
+  Kurento[Kurento ~2013] --> OV2[OpenVidu 2]
+  mediasoup[mediasoup 2015] --> OV3[OpenVidu 3]
+  Pion[Pion 2018] --> LiveKit[LiveKit 2021]
+  LiveKit -->|fork, isti API i SDK| OV3
+  LiveKit --> EC[Element Call / Matrix]
+  mediasoup --> MiroTalk[MiroTalk SFU]
+  Jitsi[Jitsi 2003, zaseban] 
+  Janus[Janus 2014, zaseban]
+```
+
+### GitHub (stanje 2026-10-25, `gh api`)
+
+Svi projekti su aktivni (zadnji push u listopadu 2026., nijedan nije arhiviran).
+
+| Repo | ★ | Licenca | Napomena |
+|---|---:|---|---|
+| jitsi/jitsi-meet | 30.142 | Apache-2.0 | gotova aplikacija |
+| livekit/livekit | 21.810 | Apache-2.0 | SFU server |
+| pion/webrtc | 16.853 | MIT | biblioteka, temelj LiveKita |
+| livekit/agents | 14.934 | Apache-2.0 | AI sudionici |
+| bigbluebutton/bigbluebutton | 9.252 | LGPL-3.0 | učionica |
+| meetecho/janus-gateway | 9.193 | GPL-3.0 | C, plugini |
+| versatica/mediasoup | 7.405 | ISC | SFU biblioteka |
+| miroslavpejic85/mirotalksfu | 3.136 | AGPL-3.0 | aplikacija na mediasoupu |
+| jitsi/jitsi-videobridge | 3.107 | Apache-2.0 | Jitsijev SFU |
+| OpenVidu/openvidu | 2.138 | Apache-2.0 | fork LiveKita |
+| jech/galene | 1.425 | MIT | mali Go SFU |
+| livekit-examples/meet | 977 | Apache-2.0 | primjer aplikacije za sastanke |
+| Kurento/kurento | 442 | Apache-2.0 | i dalje se održava (push 2026-10-15) |
+| livekit/egress | 372 | Apache-2.0 | snimanje |
+
+Ispravak ranije tvrdnje: **Kurento nije napušten**, i dalje dobiva commitove.
+Malen je i rijetko se bira za nove projekte.
+
+### OpenVidu 3
+
+Prema vlastitoj dokumentaciji, OpenVidu 3 je **fork LiveKita, 100%
+kompatibilan po API-ju i SDK-ovima**. Koristi standardne `livekit-client` i
+`livekit-server-sdk`. Kao media engine nudi Pion (kao LiveKit) ili
+**mediasoup**, za koji tvrde da podnosi otprilike 2× više trackova na istom
+stroju. To je njihov benchmark, ne neovisan. U paketu su Egress, Ingress,
+S3-kompatibilna pohrana i admin dashboard. Ranije je OpenVidu prešao s
+Kurenta na mediasoup, a zatim integrirao LiveKit.
+
+Posljedica: kod pisan za LiveKit SDK radi i na OpenVidu 3. To je izlaz ako
+self-hostani LiveKit postane premalo učinkovit ili ako zatreba komercijalna
+podrška.
+
+### Što je samo u LiveKit Cloudu
+
+- **Napredno uklanjanje šuma** (Krisp, BVC, ai-coustics): ugrađeni modeli traže
+  da media ide kroz LiveKit Cloud. Self-host dobiva standardno WebRTC
+  uklanjanje šuma u pregledniku. ai-coustics radi i self-hostano, ali uz
+  vlastitu licencu. Postoje open source dodaci: RNNoise
+  (`livekit/agents` PR #6477) i DTLN (`aloware/livekit-plugins-dtln`).
+  Jedan GitHub issue navodi da Krisp od svibnja 2026. postaje plaćen, što nije
+  provjereno u službenom cjeniku.
+- **Telefonija (SIP)**: Krisp na SIP trunku je samo u Cloudu.
+- **Analitika**: Cloud ima dashboard (Analytics API na Scale planu). Kod
+  self-hosta je to vlastito rješenje (Prometheus i slično).
+
+Za krunicu je to prihvatljivo: predvoditelju je važna dobra slušalica s
+mikrofonom, a ostali su većinom slušatelji. RNNoise se može dodati kasnije.
+
+### Izvori
+
+- <https://docs.livekit.io/transport/self-hosting/>
+- <https://livekit.com/blog/noise-cancellation>
+- <https://community.livekit.io/t/is-krisp-noise-cancellation-available-with-livekit-cloud/78>
+- <https://github.com/livekit/agents/pull/6477>, <https://github.com/livekit/agents/issues/5507>
+- <https://github.com/aloware/livekit-plugins-dtln>
+- <https://openvidu.io/openvidu-vs-livekit/>, <https://openvidu.io/3.8/docs/comparing-openvidu/>
+- <https://docs.openvidu.io/en/stable/openvidu3/>
+
 ## Otvoreno
 
 - Ime projekta (Prayminder je zauzeto).
