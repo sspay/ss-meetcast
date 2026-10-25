@@ -194,3 +194,109 @@ mikrofonom, a ostali su većinom slušatelji. RNNoise se može dodati kasnije.
 - Kostur: LiveKit u Dockeru, backend koji izdaje tokene po nakani i terminu,
   jednostavan web klijent.
 - Repo još nema remote.
+
+## Kapacitet lokalnog servera (Minisforum, bez clouda)
+
+### Polazište: službeni LiveKit benchmark
+
+Mjereno na GCP `c2-standard-16` (16 vCPU = 8 fizičkih jezgri):
+
+| Scenarij | Objavljuju | Primaju | Ulaz / izlaz | Paketa/s izlaz | CPU |
+|---|---:|---:|---|---:|---:|
+| Audio | 10 | 3000 | 7,3 kB/s / 23 MB/s | 959.156 | 80% |
+| Sastanak 720p | 150 | 150 | 50 MB/s / 93 MB/s | 762.749 | 85% |
+| Prijenos 720p | 1 | 3000 | 233 kB/s / 531 MB/s | 560.962 | 92% |
+
+Izvedeno po sudioniku: audio slušatelj oko **61 kbit/s**, gledatelj 720p
+oko **1,4 Mbit/s**, sudionik sastanka s videom oko **5 Mbit/s prema sebi** i
+**2,7 Mbit/s od sebe** (simulcast).
+
+Jedna soba mora stati na jedan čvor. Egress traži **4 CPU i 4 GB RAM-a po
+instanci**, a kompozitno snimanje troši 2–6 CPU i snima jednu sobu po
+instanci. Track egress (bez transkodiranja) je gotovo besplatan.
+<https://docs.livekit.io/transport/self-hosting/benchmark/>,
+<https://docs.livekit.io/transport/self-hosting/egress/>
+
+### Gdje je usko grlo
+
+Usko grlo je **upload kućne veze**, ne CPU. 8 jezgri gura 4,2 Gbit/s
+(prijenos), a kućni upload je 100–1000 Mbit/s. Drugo usko grlo su
+**paketi u sekundi kroz kućni router**: 1000 audio slušatelja znači otprilike
+320k paketa/s, što potrošački ISP router (NAT, conntrack) obično ne izdrži.
+
+### Formula
+
+```
+izlaz servera = Σ_po_sudioniku Σ_tracka_koje_prima bitrate
+koristivo     = 0,7 × upload veze
+```
+
+**Zamka zajedničke molitve:** ako svi imaju uključen mikrofon, broj audio
+streamova raste s **N·(N−1)**, odnosno kvadratno. LiveKit ne miješa zvuk (nije
+MCU). Usto se kod 20 i više ljudi koji istovremeno odgovaraju uz različite
+latencije (50–300 ms) čuje „jeka zbora". Prijedlog: predvoditelj i 2–4
+mikrofona za odgovaranje su uključeni, ostali su utišani i mole uz njih.
+
+### Procjena po scenariju (70% uploada)
+
+| Scenarij | 100 Mbit/s | 250 Mbit/s | 500 Mbit/s | 1 Gbit/s |
+|---|---:|---:|---:|---:|
+| A: 1 predvoditelj audio, slušatelji (61 kbit/s) | ~1.150 | ~2.850 | ~3.000 (CPU) | ~3.000 (CPU) |
+| B: predvoditelj 720p video + audio (1,4 Mbit/s) | ~50 | ~125 | ~250 | ~500 |
+| C: svi s videom, mreža pločica (5 Mbit/s) | ~14 | ~35 | ~70 | ~140 |
+| D: svi s uključenim mikrofonom (~40 kbit/s po streamu, N²) | ~42 | ~66 | ~93 | ~132 |
+
+Brojke su **ukupno za sve sobe istovremeno**, ne po sobi. Ako u srijedu u
+21:00 rade tri krunice, dijele isti upload. Za scenarij C treba i download
+(N × 2,7 Mbit/s).
+
+CPU granica za A iz benchmarka vrijedi za 8 fizičkih jezgri. Minisforum s
+14–16 jezgri (MS-01 i9-13900H, MS-A2 Ryzen 9 9955HX) trebao bi imati
+otprilike 1–2× tu granicu. Ovo je procjena, nije izmjereno.
+
+### RAM (procjena, LiveKit ne objavljuje brojke)
+
+| Komponenta | RAM |
+|---|---:|
+| Linux + Docker | 2 GB |
+| LiveKit server + Redis | 2–4 GB |
+| Aplikacija + Postgres | 4 GB |
+| Egress, kompozitno snimanje (po istovremenoj snimci) | 4 GB |
+| Rezerva | 25% |
+
+**32 GB** pokriva 2 istovremene video snimke, **64 GB** 4–5 snimaka. Snimanje
+samo zvuka ne povećava RAM primjetno.
+
+### Disk
+
+| Snimka | Bitrate | Po satu |
+|---|---:|---:|
+| Audio track (Opus) | 32 kbit/s | ~14 MB |
+| Miješani audio sobe | 64–128 kbit/s | 29–58 MB |
+| Video kompozit 720p | ~2,5 Mbit/s | ~1,1 GB |
+| Video kompozit 1080p | ~4,5 Mbit/s | ~2 GB |
+
+Primjer: 20 krunica dnevno po 30 min. Samo zvuk daje oko 0,6 GB dnevno, odnosno
+oko 210 GB godišnje. Video 720p daje oko 11 GB dnevno, odnosno oko 4 TB
+godišnje. NVMe od 2 TB i lokalni backup (NAS) dovoljni su za zvuk. Za video
+treba politika brisanja ili veći disk.
+
+### Mreža i infrastruktura
+
+- **Javna IPv4 adresa, ne CGNAT**, idealno statička (inače DDNS). Domena i
+  TLS (Let's Encrypt).
+- Portovi: TCP 443 (signalizacija i TURN/TLS), TCP 7881, UDP 7882 (UDP mux)
+  ili raspon 50000–60000, UDP 3478 (TURN).
+- Vlastiti router (OPNsense/pfSense) ili ISP router u bridge načinu, zbog
+  paketa u sekundi.
+- UPS. Kućna veza i struja su jedna točka kvara.
+- Provjeriti uvjete ISP-a za hosting na privatnom priključku. Za javni servis
+  je bolja poslovna linija sa statičkom IP adresom.
+- Latencija iz Amerike do Hrvatske je oko 120–200 ms, što je za molitvu
+  prihvatljivo.
+
+### Kako izmjeriti umjesto procjene
+
+`lk load-test --audio-publishers 1 --subscribers 500` (i varijante za scenarije
+B, C i D) s drugog stroja na drugoj mreži, uz praćenje CPU-a, uploada i paketa
+u sekundi na routeru. Zatim zamijeniti procjene u ovoj tablici mjerenjima.
