@@ -7,6 +7,10 @@ Open source „Google Meet + YouTube" na vlastitom hardveru:
 - **M gledatelja** prati isti razgovor kao prijenos, s kašnjenjem od 4–10 s,
   preko Cloudflare edgea, tako da trošak ne raste s brojem gledatelja.
 
+Dugoročno: nativne aplikacije za macOS i Windows koje koriste sav dostupni
+hardver (VideoToolbox, NVENC, Quick Sync, AMF), uz web klijent na istom
+serveru. Vidi [4K panel](docs/2026-10-26-4k-panel.md#vizija-nativne-aplikacije-za-macos-i-windows).
+
 Repo je tehnička osnova. Namjenski proizvodi (npr. molitvena mreža) nastaju
 kasnije kao derivati.
 
