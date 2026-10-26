@@ -193,7 +193,7 @@ mikrofonom, a ostali su većinom slušatelji. RNNoise se može dodati kasnije.
 - Potvrditi odluku LiveKit ili Jitsi MVP.
 - Kostur: LiveKit u Dockeru, backend koji izdaje tokene po nakani i terminu,
   jednostavan web klijent.
-- Repo još nema remote.
+- ~~Repo još nema remote.~~ Od 2026-10-26: `sspay/ss-meetcast` (javni).
 
 ## Kapacitet lokalnog servera (Minisforum, bez clouda)
 
