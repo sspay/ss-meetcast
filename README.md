@@ -47,6 +47,7 @@ Glavne odluke:
 | [Distribucija kroz Cloudflare edge](docs/2026-10-26-distribucija-kroz-cloudflare-edge.md) | zašto YouTube skalira, uvjeti korištenja, kašnjenje, trošak po broju gledatelja, alternative |
 | [R2 operacije i cache](docs/2026-10-26-r2-operacije-i-cache.md) | tri razine cachea, izračun operacija, što kvari cache, napadi na račun |
 | [HLS pipeline: implementacija](docs/2026-10-26-hls-pipeline-implementacija.md) | Egress, ffmpeg, uploader, R2 i Cloudflare postavke, player, plan testiranja |
+| [4K panel](docs/2026-10-26-4k-panel.md) | upload i download po panelistu, server, 4K prijenos, tko troši CPU (kodiranje, dekodiranje, transkodiranje) |
 
 Preporučeni redoslijed čitanja je odozgo prema dolje.
 
